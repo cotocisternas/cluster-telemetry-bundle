@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - target-allocator-release.yaml
+configMapGenerator:
+  - name: opentelemetry-target-allocator-values
+    namespace: telemetry
+    files:
+      - values.yaml=target-allocator-values.yaml
+  - name: opentelemetry-collector-prometheus-crd-values
+    namespace: telemetry
+    files:
+      - values.yaml=otel-collector-values.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/component: metrics-discovery
+    app.kubernetes.io/managed-by: flux
+    app.kubernetes.io/name: prometheus-crd-scrape-values
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    reconcile.fluxcd.io/watch: Enabled

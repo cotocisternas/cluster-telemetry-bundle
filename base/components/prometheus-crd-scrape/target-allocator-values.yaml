@@ -1,0 +1,29 @@
+fullnameOverride: opentelemetry-target-allocator
+mode: deployment
+replicaCount: 1
+targetAllocator:
+  config:
+    allocation_strategy: consistent-hashing
+    collector_namespace: telemetry
+    collector_selector:
+      matchlabels:
+        app.kubernetes.io/name: opentelemetry-collector
+    prometheus_cr:
+      enabled: true
+      scrapeInterval: 30s
+      service_monitor_selector:
+        matchLabels:
+          telemetry.example.com/scrape: "true"
+      pod_monitor_selector:
+        matchLabels:
+          telemetry.example.com/scrape: "true"
+    filter_strategy: relabel-config
+    config:
+      scrape_configs: []
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 200m

@@ -1,0 +1,37 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: prometheus-node-exporter
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/name: prometheus-node-exporter
+    app.kubernetes.io/component: metric-sources
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    app.kubernetes.io/managed-by: flux
+spec:
+  interval: 1h
+  timeout: 5m
+  dependsOn:
+    - name: opentelemetry-target-allocator
+  chart:
+    spec:
+      chart: prometheus-node-exporter
+      version: "4.55.x"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: ConfigMap
+      name: node-exporter-values
+      valuesKey: values.yaml
+    - kind: ConfigMap
+      name: node-exporter-cluster-values
+      valuesKey: values.yaml
+      optional: true

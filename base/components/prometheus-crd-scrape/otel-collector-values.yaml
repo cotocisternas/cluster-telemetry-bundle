@@ -1,0 +1,15 @@
+config:
+  receivers:
+    prometheus:
+      target_allocator:
+        endpoint: "http://opentelemetry-target-allocator-ta.telemetry.svc:80"
+        interval: 30s
+        collector_id: "${env:OTEL_K8S_POD_NAME}"
+      config:
+        scrape_configs: []
+  service:
+    pipelines:
+      metrics/prometheus-crds:
+        receivers: [prometheus]
+        processors: [memory_limiter, resource/cluster, batch]
+        exporters: [otlphttp/victoriametrics, otlp/upstream]

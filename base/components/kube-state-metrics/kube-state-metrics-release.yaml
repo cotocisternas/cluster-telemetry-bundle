@@ -1,0 +1,37 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-state-metrics
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/component: metric-sources
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    app.kubernetes.io/managed-by: flux
+spec:
+  interval: 1h
+  timeout: 5m
+  dependsOn:
+    - name: opentelemetry-target-allocator
+  chart:
+    spec:
+      chart: kube-state-metrics
+      version: "7.4.x"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: ConfigMap
+      name: kube-state-metrics-values
+      valuesKey: values.yaml
+    - kind: ConfigMap
+      name: kube-state-metrics-cluster-values
+      valuesKey: values.yaml
+      optional: true

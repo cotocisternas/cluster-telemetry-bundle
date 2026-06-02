@@ -1,0 +1,31 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: opentelemetry-target-allocator
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/name: opentelemetry-target-allocator
+    app.kubernetes.io/component: metrics-discovery
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    app.kubernetes.io/managed-by: flux
+spec:
+  interval: 1h
+  timeout: 5m
+  chart:
+    spec:
+      chart: opentelemetry-target-allocator
+      version: "0.127.x"
+      sourceRef:
+        kind: HelmRepository
+        name: opentelemetry
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: ConfigMap
+      name: opentelemetry-target-allocator-values
+      valuesKey: values.yaml

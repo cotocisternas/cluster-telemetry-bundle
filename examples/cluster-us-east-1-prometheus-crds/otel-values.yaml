@@ -1,0 +1,29 @@
+extraEnvs:
+  - name: CLUSTER
+    value: "us-east-1-prod"
+  - name: UPSTREAM_OTLP_GRPC_ENDPOINT
+    value: "otel-gateway.us-east-1.example.com:4317"
+config:
+  processors:
+    tail_sampling:
+      policies:
+        - name: retain-5xx
+          type: numeric_attribute
+          numeric_attribute:
+            key: http.response.status_code
+            min_value: 500
+            max_value: 599
+        - name: retain-4xx
+          type: numeric_attribute
+          numeric_attribute:
+            key: http.response.status_code
+            min_value: 400
+            max_value: 499
+        - name: retain-slow
+          type: latency
+          latency:
+            threshold_ms: 500
+        - name: baseline-probabilistic
+          type: probabilistic
+          probabilistic:
+            sampling_percentage: 5

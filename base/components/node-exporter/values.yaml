@@ -1,0 +1,22 @@
+fullnameOverride: prometheus-node-exporter
+
+service:
+  annotations: {}
+
+prometheus:
+  monitor:
+    enabled: true
+    additionalLabels:
+      telemetry.example.com/scrape: "true"
+    interval: 30s
+    scrapeTimeout: 10s
+  podMonitor:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

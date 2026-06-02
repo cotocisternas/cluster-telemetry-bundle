@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - kube-state-metrics-release.yaml
+configMapGenerator:
+  - name: kube-state-metrics-values
+    namespace: telemetry
+    files:
+      - values.yaml=values.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/component: metric-sources
+    app.kubernetes.io/managed-by: flux
+    app.kubernetes.io/name: kube-state-metrics-values
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    reconcile.fluxcd.io/watch: Enabled

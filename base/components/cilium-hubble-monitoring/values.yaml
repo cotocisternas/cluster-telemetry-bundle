@@ -1,0 +1,57 @@
+prometheus:
+  metricsService: true
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      telemetry.example.com/scrape: "true"
+    interval: 30s
+    scrapeTimeout: 10s
+
+envoy:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      labels:
+        telemetry.example.com/scrape: "true"
+      interval: 30s
+      scrapeTimeout: 10s
+
+operator:
+  prometheus:
+    metricsService: true
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      labels:
+        telemetry.example.com/scrape: "true"
+      interval: 30s
+      scrapeTimeout: 10s
+
+hubble:
+  enabled: true
+  metrics:
+    enabled:
+      - dns:query;ignoreAAAA
+      - drop
+      - tcp
+      - flow
+      - icmp
+    enableOpenMetrics: true
+    serviceMonitor:
+      enabled: true
+      labels:
+        telemetry.example.com/scrape: "true"
+      interval: 30s
+      scrapeTimeout: 10s
+  relay:
+    enabled: true
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        labels:
+          telemetry.example.com/scrape: "true"
+        interval: 30s
+        scrapeTimeout: 10s

@@ -50,6 +50,9 @@ That overlay adds:
   HelmRelease and collector profile values.
 - A collector values override with a `prometheus` receiver using the Target
   Allocator endpoint.
+- An optional `opentelemetry-target-allocator-cluster-values` hook for
+  cluster-specific Target Allocator Helm values, such as custom
+  `ServiceMonitor` and `PodMonitor` selector labels.
 - A dedicated `metrics/prometheus-crds` pipeline that does not run the generic
   OTLP metric scrubber, so Prometheus metric labels are preserved.
 
@@ -77,6 +80,12 @@ metadata:
 This is intentionally narrower than selecting every CRD in the cluster.
 Workload teams opt into collection by adding the label to their
 `ServiceMonitor` or `PodMonitor`.
+
+To change this selector for a cluster, create
+`opentelemetry-target-allocator-cluster-values` in the `telemetry` namespace and
+override `targetAllocator.config.prometheus_cr.service_monitor_selector` and
+`targetAllocator.config.prometheus_cr.pod_monitor_selector`. The Flux copy-paste
+example in `examples/flux/prometheus-crds` demonstrates that pattern.
 
 ## Example ServiceMonitor
 

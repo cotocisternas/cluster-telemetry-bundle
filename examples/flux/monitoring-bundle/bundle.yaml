@@ -11,8 +11,9 @@ spec:
   sourceRef:
     kind: GitRepository
     name: cluster-telemetry-bundle
-  path: ./examples/cluster-us-east-1
+  path: ./base
+  ignoreMissingComponents: false
   components:
-    - ../../base/components/prometheus-crd-scrape
-    - ../../base/components/kube-state-metrics
-    - ../../base/components/node-exporter
+    - components/prometheus-crd-scrape
+    - components/kube-state-metrics
+    - components/node-exporter

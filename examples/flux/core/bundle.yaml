@@ -11,4 +11,4 @@ spec:
   sourceRef:
     kind: GitRepository
     name: cluster-telemetry-bundle
-  path: ./examples/cluster-us-east-1
+  path: ./base

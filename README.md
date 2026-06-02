@@ -342,9 +342,10 @@ See `docs/kind-e2e.md` for the full flow.
 
 ## Deploy With Flux
 
-A platform GitOps repository should point a Flux Kustomization at the desired
-remote overlay path. The examples under `examples/flux` include both the
-`GitRepository` source and the Flux `Kustomization`:
+A platform GitOps repository should copy one directory under `examples/flux`.
+The Flux `Kustomization` points at the reusable remote `./base` path, and
+optional profiles are selected with Flux `.spec.components` paths relative to
+`./base`:
 
 ```yaml
 apiVersion: source.toolkit.fluxcd.io/v1
@@ -364,24 +365,52 @@ metadata:
   name: cluster-telemetry-bundle
   namespace: flux-system
 spec:
+  interval: 10m
+  prune: true
+  wait: true
+  timeout: 10m
   sourceRef:
     kind: GitRepository
     name: cluster-telemetry-bundle
-  path: ./examples/cluster-us-east-1
-  prune: true
-  interval: 10m
-```
-
-Optional profiles can be added through Flux/Kustomize components:
-
-```yaml
-spec:
-  path: ./examples/cluster-us-east-1
+  path: ./base
+  ignoreMissingComponents: false
   components:
-    - ../../base/components/prometheus-crd-scrape
-    - ../../base/components/kube-state-metrics
-    - ../../base/components/node-exporter
+    - components/prometheus-crd-scrape
+    - components/kube-state-metrics
+    - components/node-exporter
 ```
+
+Use these profile shapes:
+
+```text
+core:
+  path: ./base
+
+prometheus-crds:
+  path: ./base
+  components:
+    - components/prometheus-crd-scrape
+  local ConfigMap:
+    opentelemetry-target-allocator-cluster-values:
+      observability.example.com/scrape=enabled
+
+monitoring-bundle:
+  path: ./base
+  components:
+    - components/prometheus-crd-scrape
+    - components/kube-state-metrics
+    - components/node-exporter
+```
+
+Do not point production Flux Kustomizations at `./examples/...`; those paths are
+local render fixtures and documentation examples.
+
+The standard Helm values override pattern is an optional `*-cluster-values`
+ConfigMap in the HelmRelease namespace. The `examples/flux/prometheus-crds`
+manifest shows this by creating
+`opentelemetry-target-allocator-cluster-values`, which changes the Target
+Allocator `ServiceMonitor` and `PodMonitor` selector labels without forking the
+bundle.
 
 ## Create A Cluster Overlay
 

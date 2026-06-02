@@ -29,3 +29,7 @@ spec:
     - kind: ConfigMap
       name: opentelemetry-target-allocator-values
       valuesKey: values.yaml
+    - kind: ConfigMap
+      name: opentelemetry-target-allocator-cluster-values
+      valuesKey: values.yaml
+      optional: true

@@ -338,6 +338,10 @@ final chart values:
 Cluster overlays should prefer values files and generated ConfigMaps over JSON
 patches against deeply nested HelmRelease values.
 
+Use optional `*-cluster-values` ConfigMaps as the standard override mechanism
+for Helm chart values. Flux patches are reserved for Kubernetes object
+transformations that cannot be represented as chart values.
+
 ## Ownership Boundary
 
 ```text

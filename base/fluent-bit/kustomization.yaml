@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - fluentbit-repo.yaml
+  - fluentbit-release.yaml
+configMapGenerator:
+  - name: fluent-bit-values
+    namespace: telemetry
+    files:
+      - values.yaml=values.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/managed-by: flux
+    app.kubernetes.io/name: fluent-bit-values
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    reconcile.fluxcd.io/watch: Enabled

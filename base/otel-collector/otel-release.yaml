@@ -1,0 +1,41 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: opentelemetry-collector
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/component: processing
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    app.kubernetes.io/managed-by: flux
+spec:
+  interval: 1h
+  timeout: 5m
+  dependsOn:
+    - name: victoriametrics
+  chart:
+    spec:
+      chart: opentelemetry-collector
+      version: "0.147.x"
+      sourceRef:
+        kind: HelmRepository
+        name: opentelemetry
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: ConfigMap
+      name: opentelemetry-collector-values
+      valuesKey: values.yaml
+    - kind: ConfigMap
+      name: opentelemetry-collector-prometheus-crd-values
+      valuesKey: values.yaml
+      optional: true
+    - kind: ConfigMap
+      name: opentelemetry-collector-cluster-values
+      valuesKey: values.yaml
+      optional: true

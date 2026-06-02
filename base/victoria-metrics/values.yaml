@@ -1,0 +1,28 @@
+server:
+  retentionPeriod: "24h"
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    httpListenAddr: ":8428"
+    loggerFormat: json
+    opentelemetry.usePrometheusNaming: "true"
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+  persistentVolume:
+    enabled: false
+  service:
+    clusterIP: ""
+    servicePort: 8428
+    type: ClusterIP
+  serviceMonitor:
+    enabled: false
+    targetPort: http
+    extraLabels: {}
+    metricRelabelings: []
+  scrape:
+    enabled: false

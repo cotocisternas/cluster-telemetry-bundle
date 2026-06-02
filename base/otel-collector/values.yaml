@@ -1,0 +1,189 @@
+image:
+  repository: otel/opentelemetry-collector-k8s
+extraEnvs:
+  - name: CLUSTER
+    value: "base-cluster"
+  - name: UPSTREAM_OTLP_GRPC_ENDPOINT
+    value: "upstream-otel-collector.example.com:4317"
+mode: deployment
+replicaCount: 3
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 250m
+ports:
+  otlp:
+    enabled: true
+    containerPort: 4317
+    servicePort: 4317
+    protocol: TCP
+  otlp-http:
+    enabled: true
+    containerPort: 4318
+    servicePort: 4318
+    protocol: TCP
+  metrics:
+    enabled: true
+    containerPort: 8888
+    servicePort: 8888
+    protocol: TCP
+podMonitor:
+  enabled: false
+  metricsEndpoints:
+    - port: metrics
+      interval: 30s
+  extraLabels: {}
+serviceMonitor:
+  enabled: false
+  metricsEndpoints:
+    - port: metrics
+      interval: 30s
+  extraLabels: {}
+  relabelings: []
+  metricRelabelings: []
+config:
+  extensions:
+    health_check:
+      endpoint: "0.0.0.0:13133"
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+  processors:
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 80
+      spike_limit_percentage: 15
+    resource/cluster:
+      attributes:
+        - key: cluster
+          value: "${env:CLUSTER}"
+          action: upsert
+        - key: k8s.cluster.name
+          value: "${env:CLUSTER}"
+          action: upsert
+    tail_sampling:
+      decision_wait: 10s
+      num_traces: 50000
+      expected_new_traces_per_sec: 1000
+      policies:
+        - name: retain-5xx
+          type: numeric_attribute
+          numeric_attribute:
+            key: http.response.status_code
+            min_value: 500
+            max_value: 599
+        - name: retain-4xx
+          type: numeric_attribute
+          numeric_attribute:
+            key: http.response.status_code
+            min_value: 400
+            max_value: 499
+        - name: retain-slow
+          type: latency
+          latency:
+            threshold_ms: 500
+        - name: baseline-probabilistic
+          type: probabilistic
+          probabilistic:
+            sampling_percentage: 10
+    transform/scrub:
+      trace_statements:
+        - context: resource
+          statements:
+            - keep_keys(attributes, ["service.name", "service.namespace", "service.version", "cluster", "k8s.cluster.name", "k8s.cluster.uid", "k8s.namespace.name", "k8s.pod.name", "k8s.node.name", "k8s.deployment.name"])
+        - context: span
+          statements:
+            - keep_keys(attributes, ["http.method", "http.route", "http.response.status_code", "error.type", "rpc.method", "rpc.service", "db.system", "db.operation"])
+      metric_statements:
+        - context: resource
+          statements:
+            - keep_keys(attributes, ["service.name", "service.namespace", "service.version", "cluster", "k8s.cluster.name", "k8s.cluster.uid", "k8s.namespace.name", "k8s.pod.name", "k8s.node.name", "k8s.deployment.name"])
+        - context: datapoint
+          statements:
+            - keep_keys(attributes, ["http.method", "http.route", "http.response.status_code", "error.type", "rpc.method", "rpc.service", "db.system", "db.operation"])
+      log_statements:
+        - context: resource
+          statements:
+            - keep_keys(attributes, ["service.name", "service.namespace", "service.version", "cluster", "k8s.cluster.name", "k8s.cluster.uid", "k8s.namespace.name", "k8s.pod.name", "k8s.node.name", "k8s.deployment.name"])
+        - context: log
+          statements:
+            - keep_keys(attributes, ["http.method", "http.route", "http.response.status_code", "error.type", "severity", "exception.type", "exception.message"])
+    batch:
+      send_batch_size: 10000
+      timeout: 1s
+  exporters:
+    debug:
+      verbosity: basic
+    otlp/upstream:
+      endpoint: "${env:UPSTREAM_OTLP_GRPC_ENDPOINT}"
+      tls:
+        insecure: false
+      sending_queue:
+        enabled: true
+        queue_size: 5000
+        num_consumers: 10
+      retry_on_failure:
+        enabled: true
+        initial_interval: 5s
+        max_interval: 30s
+        max_elapsed_time: 600s
+    otlphttp/victoriametrics:
+      compression: gzip
+      metrics_endpoint: "http://vm-query.telemetry.svc:8428/opentelemetry/v1/metrics"
+      tls:
+        insecure: true
+      sending_queue:
+        enabled: true
+        queue_size: 1000
+      retry_on_failure:
+        enabled: true
+        initial_interval: 1s
+        max_interval: 10s
+        max_elapsed_time: 120s
+  connectors:
+    count:
+      logs:
+        http_5xx_errors_total:
+          description: "Count of HTTP 5xx log entries"
+          conditions:
+            - 'attributes["http.response.status_code"] >= 500'
+          attributes:
+            - key: cluster
+            - key: service.name
+            - key: k8s.namespace.name
+            - key: http.route
+            - key: http.method
+  service:
+    telemetry:
+      metrics:
+        readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: "0.0.0.0"
+                  port: 8888
+    extensions: [health_check]
+    pipelines:
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, resource/cluster, transform/scrub, batch]
+        exporters: [otlphttp/victoriametrics, otlp/upstream]
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, resource/cluster, tail_sampling, transform/scrub, batch]
+        exporters: [otlp/upstream]
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, resource/cluster, transform/scrub, batch]
+        exporters: [otlp/upstream, count]
+      metrics/from_logs:
+        receivers: [count]
+        processors: [resource/cluster, batch]
+        exporters: [otlphttp/victoriametrics, otlp/upstream]

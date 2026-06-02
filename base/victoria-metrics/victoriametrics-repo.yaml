@@ -1,0 +1,14 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: victoriametrics
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/name: victoriametrics
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    app.kubernetes.io/managed-by: flux
+spec:
+  type: oci
+  interval: 1h
+  url: oci://ghcr.io/victoriametrics/helm-charts

@@ -1,0 +1,14 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: prometheus-community
+  namespace: telemetry
+  labels:
+    app.kubernetes.io/name: prometheus-community
+    app.kubernetes.io/component: metric-sources
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    app.kubernetes.io/managed-by: flux
+spec:
+  type: oci
+  interval: 1h
+  url: oci://ghcr.io/prometheus-community/charts

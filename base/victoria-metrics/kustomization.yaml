@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - victoriametrics-repo.yaml
+  - victoriametrics-release.yaml
+  - vm-query-service.yaml
+configMapGenerator:
+  - name: victoriametrics-values
+    namespace: telemetry
+    files:
+      - values.yaml=values.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/managed-by: flux
+    app.kubernetes.io/name: victoriametrics-values
+    app.kubernetes.io/part-of: cluster-telemetry-bundle
+    reconcile.fluxcd.io/watch: Enabled

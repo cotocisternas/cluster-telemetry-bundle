@@ -1,0 +1,10 @@
+artifacts/
+AGENTS.md
+.agents/
+.codex/
+docs/agents/
+.scratch/
+.env
+.env.*
+*.pem
+*.key

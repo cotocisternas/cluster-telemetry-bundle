@@ -79,7 +79,7 @@ test/e2e/kind/cluster-cilium.yaml
 test/e2e/cilium/values.yaml
 test/e2e/prometheus-operator-crds/
 test/e2e/overlays/kind-cilium/
-base/components/cilium-hubble-monitoring/values.yaml
+components/cilium-hubble-monitoring/values.yaml
 ```
 
 ## Artifact Collection
@@ -95,5 +95,5 @@ objects, events, pod descriptions, and logs under `artifacts/kind` by default.
 
 The e2e environment installs Cilium because the test cluster needs a CNI. The
 production bundle does not install or own Cilium. Production clusters should use
-`base/components/cilium-hubble-monitoring/values.yaml` only as a monitoring values profile
+`components/cilium-hubble-monitoring/values.yaml` only as a monitoring values profile
 for an existing platform-owned Cilium HelmRelease.

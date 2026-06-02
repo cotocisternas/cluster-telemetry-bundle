@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - ../../../../examples/cluster-us-east-1-monitoring-bundle
 components:
-  - ../../../../base/components/cilium-hubble-monitoring
+  - ../../../../components/cilium-hubble-monitoring
 configMapGenerator:
   - name: opentelemetry-collector-cluster-values
     namespace: telemetry

@@ -228,8 +228,8 @@ them part of the lean base install.
 
 The profile bases are:
 
-- `base/components/kube-state-metrics`
-- `base/components/node-exporter`
+- `components/kube-state-metrics`
+- `components/node-exporter`
 
 Both use Prometheus Community OCI charts and Flux `valuesFrom` ConfigMaps.
 Both expose optional cluster override ConfigMaps:
@@ -253,7 +253,7 @@ providing a values profile that a platform-owned Cilium HelmRelease can consume.
 platform-owned Cilium HelmRelease
         |
         | valuesFrom or values file:
-        | base/components/cilium-hubble-monitoring/values.yaml
+        | components/cilium-hubble-monitoring/values.yaml
         v
 Cilium agent, operator, Hubble, Hubble Relay metrics
         |

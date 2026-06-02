@@ -46,7 +46,7 @@ kubectl kustomize examples/cluster-us-east-1-prometheus-crds
 
 That overlay adds:
 
-- `base/components/prometheus-crd-scrape`: the OpenTelemetry Target Allocator
+- `components/prometheus-crd-scrape`: the OpenTelemetry Target Allocator
   HelmRelease and collector profile values.
 - A collector values override with a `prometheus` receiver using the Target
   Allocator endpoint.

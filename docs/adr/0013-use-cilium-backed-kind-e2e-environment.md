@@ -25,7 +25,7 @@ The e2e environment installs Flux controllers and applies
 - the Cilium/Hubble monitoring values profile
 
 Cilium remains platform-owned outside this e2e environment. The reusable
-production artifact is `base/components/cilium-hubble-monitoring/values.yaml`,
+production artifact is `components/cilium-hubble-monitoring/values.yaml`,
 a values fragment that enables Cilium and Hubble ServiceMonitors with the
 Target Allocator selector label.
 

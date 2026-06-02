@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
   - ../cluster-us-east-1-prometheus-crds
 components:
-  - ../../base/components/kube-state-metrics
-  - ../../base/components/node-exporter
+  - ../../components/kube-state-metrics
+  - ../../components/node-exporter

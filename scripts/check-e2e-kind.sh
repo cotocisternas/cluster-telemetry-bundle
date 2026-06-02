@@ -4,7 +4,7 @@ set -eu
 KIND_CONFIG=${E2E_KIND_CONFIG:-test/e2e/kind/cluster-cilium.yaml}
 E2E_OVERLAY=${E2E_OVERLAY:-test/e2e/overlays/kind-cilium}
 CILIUM_VALUES=${CILIUM_VALUES:-test/e2e/cilium/values.yaml}
-CILIUM_MONITORING_VALUES=${CILIUM_MONITORING_VALUES:-base/components/cilium-hubble-monitoring/values.yaml}
+CILIUM_MONITORING_VALUES=${CILIUM_MONITORING_VALUES:-components/cilium-hubble-monitoring/values.yaml}
 CILIUM_SCRIPT=${CILIUM_SCRIPT:-scripts/e2e-kind-cilium.sh}
 MAKEFILE=${MAKEFILE:-Makefile}
 AQUA_CONFIG=${AQUA_CONFIG:-aqua.yaml}
@@ -106,6 +106,7 @@ require '^tools-install:' "$MAKEFILE" "tool install target"
 require '^tools-check:' "$MAKEFILE" "tool check target"
 require '^schema-check:' "$MAKEFILE" "schema validation target"
 require '^rendered-invariants-check:' "$MAKEFILE" "rendered invariant target"
+require '^flux-build-check:' "$MAKEFILE" "Flux build target"
 require '^helm-template-check:' "$MAKEFILE" "Helm template target"
 require '^otel-config-check:' "$MAKEFILE" "OTel config validation target"
 require '^e2e-kind-host-check:' "$MAKEFILE" "e2e host check target"

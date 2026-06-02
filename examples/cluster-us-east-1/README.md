@@ -117,7 +117,7 @@ Collector resource attributes:
 ## FluxCD Integration
 
 This directory is a local overlay example. Production Flux installs should point
-at the reusable `./base` path and provide cluster-specific values from the
+at the reusable root `./` path and provide cluster-specific values from the
 platform GitOps repository:
 
 ```yaml
@@ -130,7 +130,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: cluster-telemetry-bundle
-  path: ./base
+  path: ./
   prune: true
   interval: 10m
 ```

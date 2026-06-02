@@ -18,7 +18,7 @@ E2E_ARTIFACT_DIR ?= artifacts/kind
 
 CILIUM_VERSION ?= 1.19.4
 CILIUM_VALUES ?= test/e2e/cilium/values.yaml
-CILIUM_MONITORING_VALUES ?= base/components/cilium-hubble-monitoring/values.yaml
+CILIUM_MONITORING_VALUES ?= components/cilium-hubble-monitoring/values.yaml
 CILIUM_SCRIPT ?= scripts/e2e-kind-cilium.sh
 
 PROMETHEUS_OPERATOR_VERSION ?= v0.91.0
@@ -27,7 +27,7 @@ COLLECTOR_CHART_VERSION ?= 0.147.2
 COLLECTOR_IMAGE ?= otel/opentelemetry-collector-k8s:0.147.0@sha256:96a88c9f229836480c8ac43a068dea035d6eb4820e4bd858add35b7c337a2168
 OTEL_CONFIG_TMP ?= /tmp/cluster-telemetry-bundle-otelcol.yaml
 KUBECONFORM_CRD_SCHEMA_LOCATION ?= https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{ .Group }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json
-KUSTOMIZE_ENTRYPOINTS := base examples/cluster-us-east-1 examples/cluster-us-east-1-prometheus-crds examples/cluster-us-east-1-monitoring-bundle examples/flux/core examples/flux/prometheus-crds examples/flux/monitoring-bundle $(E2E_OVERLAY)
+KUSTOMIZE_ENTRYPOINTS := . base examples/cluster-us-east-1 examples/cluster-us-east-1-prometheus-crds examples/cluster-us-east-1-monitoring-bundle examples/flux/core examples/flux/prometheus-crds examples/flux/monitoring-bundle $(E2E_OVERLAY)
 
 .PHONY: help
 help:
@@ -37,6 +37,7 @@ help:
 	@printf '  make manifests-check       Render all Kustomize entrypoints\n'
 	@printf '  make schema-check          Validate rendered manifests with kubeconform\n'
 	@printf '  make rendered-invariants-check Check rendered topology and pin invariants\n'
+	@printf '  make flux-build-check      Dry-run Flux copy-paste examples\n'
 	@printf '  make helm-template-check   Render pinned Helm charts with repo values\n'
 	@printf '  make otel-config-check     Validate rendered OTel Collector config\n'
 	@printf '  make e2e-kind-static-check Check Kind/Cilium harness invariants\n'
@@ -46,7 +47,7 @@ help:
 	@printf '  make e2e-kind-delete       Delete the Kind environment\n'
 
 .PHONY: check
-check: tools-check manifests-check rendered-invariants-check e2e-kind-static-check
+check: tools-check manifests-check rendered-invariants-check flux-build-check e2e-kind-static-check
 
 .PHONY: tools-install
 tools-install:
@@ -85,14 +86,25 @@ schema-check: tools-check
 rendered-invariants-check: tools-check
 	KUBECTL="$(KUBECTL)" sh scripts/check-rendered-invariants.sh
 
+.PHONY: flux-build-check
+flux-build-check: tools-check
+	@tmp=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp"' EXIT; \
+	mkdir -p "$$tmp/repo"; \
+	tar --exclude=.git -cf - . | tar -C "$$tmp/repo" -xf -; \
+	cd "$$tmp/repo"; \
+	$(FLUX) build kustomization cluster-telemetry-bundle --path . --kustomization-file examples/flux/core/bundle.yaml --dry-run >/dev/null; \
+	$(FLUX) build kustomization cluster-telemetry-bundle --path . --kustomization-file examples/flux/prometheus-crds/bundle.yaml --dry-run >/dev/null; \
+	$(FLUX) build kustomization cluster-telemetry-bundle --path . --kustomization-file examples/flux/monitoring-bundle/bundle.yaml --dry-run >/dev/null
+
 .PHONY: helm-template-check
 helm-template-check: tools-check
 	$(HELM) template opentelemetry-collector oci://ghcr.io/open-telemetry/opentelemetry-helm-charts/opentelemetry-collector --version "$(COLLECTOR_CHART_VERSION)" --namespace telemetry --values base/otel-collector/values.yaml >/dev/null
 	$(HELM) template victoriametrics oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-single --version 0.33.0 --namespace telemetry --values base/victoria-metrics/values.yaml >/dev/null
 	$(HELM) template fluent-bit oci://ghcr.io/fluent/helm-charts/fluent-bit --version 0.56.0 --namespace telemetry --values base/fluent-bit/values.yaml >/dev/null
-	$(HELM) template opentelemetry-target-allocator oci://ghcr.io/open-telemetry/opentelemetry-helm-charts/opentelemetry-target-allocator --version 0.127.4 --namespace telemetry --values base/components/prometheus-crd-scrape/target-allocator-values.yaml >/dev/null
-	$(HELM) template kube-state-metrics oci://ghcr.io/prometheus-community/charts/kube-state-metrics --version 7.4.0 --namespace telemetry --values base/components/kube-state-metrics/values.yaml >/dev/null
-	$(HELM) template prometheus-node-exporter oci://ghcr.io/prometheus-community/charts/prometheus-node-exporter --version 4.55.0 --namespace telemetry --values base/components/node-exporter/values.yaml >/dev/null
+	$(HELM) template opentelemetry-target-allocator oci://ghcr.io/open-telemetry/opentelemetry-helm-charts/opentelemetry-target-allocator --version 0.127.4 --namespace telemetry --values components/prometheus-crd-scrape/target-allocator-values.yaml >/dev/null
+	$(HELM) template kube-state-metrics oci://ghcr.io/prometheus-community/charts/kube-state-metrics --version 7.4.0 --namespace telemetry --values components/kube-state-metrics/values.yaml >/dev/null
+	$(HELM) template prometheus-node-exporter oci://ghcr.io/prometheus-community/charts/prometheus-node-exporter --version 4.55.0 --namespace telemetry --values components/node-exporter/values.yaml >/dev/null
 
 .PHONY: otel-config-check
 otel-config-check: tools-check

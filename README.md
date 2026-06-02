@@ -97,15 +97,15 @@ See `docs/monitoring-bundle-profiles.md` for the profile model.
 ```text
 /
 |-- base/                     # Core Flux/Kustomize base
-|   |-- components/           # Optional Kustomize components
-|   |   |-- cilium-hubble-monitoring/ # Cilium/Hubble values profile
-|   |   |-- kube-state-metrics/       # Kubernetes object state metrics
-|   |   |-- node-exporter/            # Node host metrics
-|   |   `-- prometheus-crd-scrape/    # ServiceMonitor/PodMonitor scraping
 |   |-- fluent-bit/            # Fluent Bit HelmRepository, HelmRelease, values
 |   |-- otel-collector/        # OTel HelmRepository, HelmRelease, values
 |   |-- shared/                # Namespace and shared resources
 |   `-- victoria-metrics/      # VictoriaMetrics HelmRepository, HelmRelease, values
+|-- components/               # Optional Kustomize components
+|   |-- cilium-hubble-monitoring/ # Cilium/Hubble values profile
+|   |-- kube-state-metrics/       # Kubernetes object state metrics
+|   |-- node-exporter/            # Node host metrics
+|   `-- prometheus-crd-scrape/    # ServiceMonitor/PodMonitor scraping
 |-- docs/                     # Architecture notes, operator docs, and ADRs
 |-- test/e2e/                 # Kind/Cilium e2e environment
 `-- examples/
@@ -189,7 +189,7 @@ See `docs/prometheus-operator-crds.md` for details.
 ## Cilium And Hubble Metrics
 
 Cluster Telemetry Bundle does not own the cluster CNI. When a cluster uses Cilium, the
-optional `base/components/cilium-hubble-monitoring` profile provides a Cilium
+optional `components/cilium-hubble-monitoring` profile provides a Cilium
 Helm values fragment that enables Cilium, Cilium Operator, Hubble, and Hubble
 Relay metrics and labels their ServiceMonitors for Target Allocator discovery.
 
@@ -380,7 +380,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: cluster-telemetry-bundle
-  path: ./base
+  path: ./
   ignoreMissingComponents: false
   components:
     - components/prometheus-crd-scrape
@@ -392,10 +392,10 @@ Use these profile shapes:
 
 ```text
 core:
-  path: ./base
+  path: ./
 
 prometheus-crds:
-  path: ./base
+  path: ./
   components:
     - components/prometheus-crd-scrape
   local ConfigMap:
@@ -403,7 +403,7 @@ prometheus-crds:
       observability.example.com/scrape=enabled
 
 monitoring-bundle:
-  path: ./base
+  path: ./
   components:
     - components/prometheus-crd-scrape
     - components/kube-state-metrics

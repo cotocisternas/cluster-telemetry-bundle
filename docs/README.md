@@ -62,7 +62,7 @@ Flux remote source:
   examples/flux/README.md -> examples/flux/monitoring-bundle
 
 Cilium/Hubble metrics:
-  docs/cilium-hubble-monitoring.md -> base/components/cilium-hubble-monitoring/values.yaml
+  docs/cilium-hubble-monitoring.md -> components/cilium-hubble-monitoring/values.yaml
 
 Kind e2e:
   docs/kind-e2e.md -> Makefile -> test/e2e/overlays/kind-cilium

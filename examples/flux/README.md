@@ -4,12 +4,12 @@ These directories are meant to be copied into a platform Flux repository. Each
 directory contains a complete `GitRepository` and Flux `Kustomization` pair that
 pulls Cluster Telemetry Bundle from the public upstream repository.
 
-The Flux `Kustomization` points at `./base`, and optional profiles are selected
-with Flux `.spec.components`. Component paths are relative to `./base` inside the
-fetched source artifact.
+The Flux `Kustomization` points at the repository root `./`, and optional
+profiles are selected with Flux `.spec.components`. The root kustomization pulls
+in `base/`, while profile components live under top-level `components/`.
 
 This follows the Flux Kustomization components contract: component paths must be
-local and relative to `.spec.path`. See the Flux docs:
+local paths inside the fetched source artifact. See the Flux docs:
 https://fluxcd.io/flux/components/kustomize/kustomizations/#components
 
 ```text
@@ -28,7 +28,7 @@ source.yaml
 bundle.yaml
   Kustomization:
     sourceRef: cluster-telemetry-bundle
-    path: ./base
+    path: ./
     components:
       - components/prometheus-crd-scrape
       - components/kube-state-metrics
@@ -40,14 +40,14 @@ bundle.yaml
 ```text
 core/
   Deploys the reusable base bundle:
-  path: ./base
+  path: ./
 
 prometheus-crds/
   Deploys the reusable base bundle with Prometheus Operator
   ServiceMonitor/PodMonitor scraping. This example also creates
   opentelemetry-target-allocator-cluster-values to show the cluster override
   hook while keeping the bundle default scrape selector:
-  path: ./base
+  path: ./
   components:
     - components/prometheus-crd-scrape
   local ConfigMap:
@@ -58,7 +58,7 @@ prometheus-crds/
 monitoring-bundle/
   Deploys the reusable base bundle with Prometheus CRD scraping,
   kube-state-metrics, and node-exporter:
-  path: ./base
+  path: ./
   components:
     - components/prometheus-crd-scrape
     - components/kube-state-metrics
@@ -124,13 +124,13 @@ not split.
 Keep the copy-paste Flux shape the same:
 
 ```text
-GitRepository -> path: ./base -> optional components relative to ./base
+GitRepository -> path: ./ -> optional top-level components
 local Flux repo -> optional *-cluster-values ConfigMaps
 ```
 
 Do not point `path` at this repository's `examples/` directories for production
 Flux installs. The examples are local render fixtures and documentation aids;
-the reusable deployment entrypoint is `./base`.
+the reusable deployment entrypoint is `./`.
 
 Use a release tag or exact commit in production `GitRepository` sources. The
 checked-in examples use `branch: main` only as a development fixture until this

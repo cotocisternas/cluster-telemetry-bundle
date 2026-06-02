@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - ../cluster-us-east-1
 components:
-  - ../../base/components/prometheus-crd-scrape
+  - ../../components/prometheus-crd-scrape
 configMapGenerator:
   - name: opentelemetry-collector-cluster-values
     namespace: telemetry

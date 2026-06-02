@@ -27,6 +27,9 @@ jobs:
       - name: Check rendered invariants
         run: make rendered-invariants-check
 
+      - name: Dry-run Flux examples
+        run: make flux-build-check
+
       - name: Validate schemas
         run: make schema-check
 

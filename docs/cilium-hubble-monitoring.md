@@ -17,7 +17,7 @@ cluster-telemetry-bundle owns:
 The reusable values live in:
 
 ```text
-base/components/cilium-hubble-monitoring/values.yaml
+components/cilium-hubble-monitoring/values.yaml
 ```
 
 The profile enables:
@@ -83,7 +83,7 @@ The Kind e2e environment installs Cilium with:
 
 ```text
 test/e2e/cilium/values.yaml
-base/components/cilium-hubble-monitoring/values.yaml
+components/cilium-hubble-monitoring/values.yaml
 ```
 
 That proves the same values profile can produce labeled ServiceMonitors and

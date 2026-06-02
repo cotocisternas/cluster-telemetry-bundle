@@ -1,0 +1,20 @@
+extraEnvs:
+  - name: CLUSTER
+    value: "kind-cilium"
+  - name: UPSTREAM_OTLP_GRPC_ENDPOINT
+    value: "unused.kind.local:4317"
+config:
+  service:
+    pipelines:
+      metrics:
+        exporters: [otlphttp/victoriametrics]
+      traces:
+        exporters: [debug]
+      logs:
+        exporters: [debug, count]
+      metrics/from_logs:
+        exporters: [otlphttp/victoriametrics]
+      metrics/prometheus-crds:
+        receivers: [prometheus]
+        processors: [memory_limiter, resource/cluster, batch]
+        exporters: [otlphttp/victoriametrics]

@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/aquaproj/aqua/main/json-schema/aqua-yaml.json
+registries:
+  - type: standard
+    ref: v4.520.0
+packages:
+  - name: kubernetes-sigs/kind@v0.31.0
+  - name: kubernetes/kubernetes/kubectl@v1.36.1
+  - name: helm/helm@v3.21.0
+  - name: fluxcd/flux2@v2.8.8

@@ -52,7 +52,7 @@ HelmRelease base values
 
 | Area | Base Value | Overlay Value | Why |
 |------|------------|---------------|-----|
-| Cluster label | `base-cluster` | `us-east-1-prod` | Identifies local metrics with the common `cluster` label |
+| Cluster label | `UNSET-OVERRIDE-IN-OVERLAY` | `us-east-1-prod` | Identifies local metrics with the common `cluster` label |
 | Upstream OTLP/gRPC endpoint | `upstream-otel-collector.example.com:4317` | `otel-gateway.us-east-1.example.com:4317` | Routes forwarded telemetry to the next upstream hop |
 | Sampling percentage | `10` | `5` | Reduces trace volume for a high-traffic cluster |
 
@@ -116,8 +116,9 @@ Collector resource attributes:
 
 ## FluxCD Integration
 
-The master GitOps repository points each cluster's Flux Kustomization to its
-overlay path:
+This directory is a local overlay example. Production Flux installs should point
+at the reusable `./base` path and provide cluster-specific values from the
+platform GitOps repository:
 
 ```yaml
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -129,10 +130,13 @@ spec:
   sourceRef:
     kind: GitRepository
     name: cluster-telemetry-bundle
-  path: ./examples/cluster-us-east-1
+  path: ./base
   prune: true
   interval: 10m
 ```
+
+Copy this overlay's `opentelemetry-collector-cluster-values` pattern into the
+platform repository rather than pointing production Flux at `examples/`.
 
 ## Adding More Cluster Overrides
 

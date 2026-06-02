@@ -22,6 +22,8 @@ your Flux repo
 source.yaml
   GitRepository:
     url: https://github.com/cotocisternas/cluster-telemetry-bundle.git
+    ref:
+      tag: <release-tag>
 
 bundle.yaml
   Kustomization:
@@ -43,15 +45,15 @@ core/
 prometheus-crds/
   Deploys the reusable base bundle with Prometheus Operator
   ServiceMonitor/PodMonitor scraping. This example also creates
-  opentelemetry-target-allocator-cluster-values to use a custom scrape
-  selector:
+  opentelemetry-target-allocator-cluster-values to show the cluster override
+  hook while keeping the bundle default scrape selector:
   path: ./base
   components:
     - components/prometheus-crd-scrape
   local ConfigMap:
     opentelemetry-target-allocator-cluster-values:
       targetAllocator.config.prometheus_cr selector:
-        observability.example.com/scrape=enabled
+        telemetry.example.com/scrape=true
 
 monitoring-bundle/
   Deploys the reusable base bundle with Prometheus CRD scraping,
@@ -100,17 +102,11 @@ needed `*-cluster-values` ConfigMaps in the `telemetry` namespace or maintain
 an internal overlay repository that extends this bundle.
 
 The `prometheus-crds` example demonstrates this pattern by creating
-`opentelemetry-target-allocator-cluster-values`. It changes the Target
-Allocator selector from the bundle default:
+`opentelemetry-target-allocator-cluster-values`. It keeps the Target Allocator
+selector aligned with the bundle default:
 
 ```text
 telemetry.example.com/scrape=true
-```
-
-to this copy-paste placeholder:
-
-```text
-observability.example.com/scrape=enabled
 ```
 
 Workload `ServiceMonitor` and `PodMonitor` objects must use the same label:
@@ -118,11 +114,12 @@ Workload `ServiceMonitor` and `PodMonitor` objects must use the same label:
 ```yaml
 metadata:
   labels:
-    observability.example.com/scrape: "enabled"
+    telemetry.example.com/scrape: "true"
 ```
 
-For `monitoring-bundle`, keep the default selector unless you also override the
-kube-state-metrics and node-exporter ServiceMonitor labels to match.
+If you choose a platform-specific selector, override the Target Allocator
+selectors and every in-bundle ServiceMonitor label together so discovery does
+not split.
 
 Keep the copy-paste Flux shape the same:
 
@@ -134,3 +131,7 @@ local Flux repo -> optional *-cluster-values ConfigMaps
 Do not point `path` at this repository's `examples/` directories for production
 Flux installs. The examples are local render fixtures and documentation aids;
 the reusable deployment entrypoint is `./base`.
+
+Use a release tag or exact commit in production `GitRepository` sources. The
+checked-in examples use `branch: main` only as a development fixture until this
+repository publishes release tags.

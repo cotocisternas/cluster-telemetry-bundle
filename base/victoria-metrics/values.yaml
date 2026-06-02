@@ -1,3 +1,6 @@
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
 server:
   retentionPeriod: "24h"
   extraArgs:
@@ -15,6 +18,16 @@ server:
       cpu: 500m
   persistentVolume:
     enabled: false
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: victoria-metrics-single
+                app.kubernetes.io/instance: victoriametrics
+            topologyKey: kubernetes.io/hostname
   service:
     clusterIP: ""
     servicePort: 8428

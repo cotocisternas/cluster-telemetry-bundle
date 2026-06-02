@@ -129,7 +129,9 @@ See `docs/monitoring-bundle-profiles.md` for the profile model.
   are processed, scrubbed, sampled where applicable, and forwarded without local
   query storage.
 - The collector keeps error and slow traces, plus a small probabilistic baseline,
-  before forwarding traces upstream.
+  before forwarding traces upstream. The base collector runs one replica while
+  tail sampling is enabled; scale traces with a trace-ID-routed two-tier
+  collector topology rather than increasing this replica count directly.
 
 ```text
 Signal        Local cache                 Upstream forwarding
@@ -147,7 +149,9 @@ the base bundle includes host-level collectors. Fluent Bit tails node container
 logs through host paths, and the optional node-exporter profile also uses host
 namespaces and host paths. Clusters that need stricter separation should deploy
 host collectors in a dedicated privileged namespace and keep pure gateway
-components in a restricted namespace.
+components in a restricted namespace. The collector itself sets a non-root,
+read-only container security context so it does not rely on that namespace-wide
+privilege.
 
 ## Prometheus Operator CRDs
 
@@ -164,6 +168,9 @@ application metric scraping:
 The base install does not require Prometheus Operator CRDs. Collector and
 VictoriaMetrics values include disabled `ServiceMonitor` hooks for clusters
 that want an existing Prometheus stack to scrape the gateway's own metrics.
+Those hooks are the recommended self-monitoring path for collector exporter
+failures, queue saturation, dropped or refused telemetry, and memory limiter
+pressure.
 
 Application metric scraping is opt-in through
 `examples/cluster-us-east-1-prometheus-crds`. That overlay deploys the
@@ -330,7 +337,8 @@ make e2e-kind-delete
 ```
 
 The e2e path requires `aqua`, Docker, and network access for the Cilium OCI
-chart and Prometheus Operator CRDs. The Kubernetes CLIs are pinned in
+chart. Prometheus Operator CRDs are vendored under
+`test/e2e/prometheus-operator-crds/`. The Kubernetes CLIs are pinned in
 `aqua.yaml`:
 
 ```bash
@@ -357,7 +365,7 @@ spec:
   interval: 1m
   url: https://github.com/cotocisternas/cluster-telemetry-bundle.git
   ref:
-    branch: main
+    tag: <release-tag>
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

@@ -7,6 +7,8 @@ KIND ?= $(AQUA) exec -- kind
 KUBECTL ?= $(AQUA) exec -- kubectl
 HELM ?= $(AQUA) exec -- helm
 FLUX ?= $(AQUA) exec -- flux
+KUBECONFORM ?= $(AQUA) exec -- kubeconform
+YQ ?= $(AQUA) exec -- yq
 
 E2E_KIND_CLUSTER ?= cluster-telemetry-bundle-e2e
 E2E_KIND_CONTEXT ?= kind-$(E2E_KIND_CLUSTER)
@@ -20,7 +22,12 @@ CILIUM_MONITORING_VALUES ?= base/components/cilium-hubble-monitoring/values.yaml
 CILIUM_SCRIPT ?= scripts/e2e-kind-cilium.sh
 
 PROMETHEUS_OPERATOR_VERSION ?= v0.91.0
-PROMETHEUS_OPERATOR_CRD_BASE ?= https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/refs/tags/$(PROMETHEUS_OPERATOR_VERSION)/example/prometheus-operator-crd
+PROMETHEUS_OPERATOR_CRD_DIR ?= test/e2e/prometheus-operator-crds
+COLLECTOR_CHART_VERSION ?= 0.147.2
+COLLECTOR_IMAGE ?= otel/opentelemetry-collector-k8s:0.147.0@sha256:96a88c9f229836480c8ac43a068dea035d6eb4820e4bd858add35b7c337a2168
+OTEL_CONFIG_TMP ?= /tmp/cluster-telemetry-bundle-otelcol.yaml
+KUBECONFORM_CRD_SCHEMA_LOCATION ?= https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{ .Group }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json
+KUSTOMIZE_ENTRYPOINTS := base examples/cluster-us-east-1 examples/cluster-us-east-1-prometheus-crds examples/cluster-us-east-1-monitoring-bundle examples/flux/core examples/flux/prometheus-crds examples/flux/monitoring-bundle $(E2E_OVERLAY)
 
 .PHONY: help
 help:
@@ -28,6 +35,10 @@ help:
 	@printf '  make tools-install        Install pinned CLIs through aqua\n'
 	@printf '  make tools-check          Verify aqua-managed CLIs are usable\n'
 	@printf '  make manifests-check       Render all Kustomize entrypoints\n'
+	@printf '  make schema-check          Validate rendered manifests with kubeconform\n'
+	@printf '  make rendered-invariants-check Check rendered topology and pin invariants\n'
+	@printf '  make helm-template-check   Render pinned Helm charts with repo values\n'
+	@printf '  make otel-config-check     Validate rendered OTel Collector config\n'
 	@printf '  make e2e-kind-static-check Check Kind/Cilium harness invariants\n'
 	@printf '  make e2e-kind-up           Create Kind, install Cilium/Flux, deploy bundle, run checks\n'
 	@printf '  make e2e-kind-check        Check an existing Kind environment\n'
@@ -35,7 +46,7 @@ help:
 	@printf '  make e2e-kind-delete       Delete the Kind environment\n'
 
 .PHONY: check
-check: tools-check manifests-check e2e-kind-static-check
+check: tools-check manifests-check rendered-invariants-check e2e-kind-static-check
 
 .PHONY: tools-install
 tools-install:
@@ -48,6 +59,8 @@ tools-check:
 	@$(KUBECTL) version --client=true >/dev/null
 	@$(HELM) version --short >/dev/null
 	@$(FLUX) --version >/dev/null
+	@$(KUBECONFORM) -v >/dev/null
+	@$(YQ) --version >/dev/null
 
 .PHONY: e2e-kind-host-check
 e2e-kind-host-check: tools-check
@@ -56,14 +69,35 @@ e2e-kind-host-check: tools-check
 
 .PHONY: manifests-check
 manifests-check: tools-check
-	$(KUBECTL) kustomize base >/dev/null
-	$(KUBECTL) kustomize examples/cluster-us-east-1 >/dev/null
-	$(KUBECTL) kustomize examples/cluster-us-east-1-prometheus-crds >/dev/null
-	$(KUBECTL) kustomize examples/cluster-us-east-1-monitoring-bundle >/dev/null
-	$(KUBECTL) kustomize examples/flux/core >/dev/null
-	$(KUBECTL) kustomize examples/flux/prometheus-crds >/dev/null
-	$(KUBECTL) kustomize examples/flux/monitoring-bundle >/dev/null
-	$(KUBECTL) kustomize $(E2E_OVERLAY) >/dev/null
+	@for entrypoint in $(KUSTOMIZE_ENTRYPOINTS); do \
+		printf 'rendering %s\n' "$$entrypoint"; \
+		$(KUBECTL) kustomize "$$entrypoint" >/dev/null; \
+	done
+
+.PHONY: schema-check
+schema-check: tools-check
+	@for entrypoint in $(KUSTOMIZE_ENTRYPOINTS); do \
+		printf 'schema validating %s\n' "$$entrypoint"; \
+		$(KUBECTL) kustomize "$$entrypoint" | $(KUBECONFORM) -strict -summary -schema-location default -schema-location '$(KUBECONFORM_CRD_SCHEMA_LOCATION)'; \
+	done
+
+.PHONY: rendered-invariants-check
+rendered-invariants-check: tools-check
+	KUBECTL="$(KUBECTL)" sh scripts/check-rendered-invariants.sh
+
+.PHONY: helm-template-check
+helm-template-check: tools-check
+	$(HELM) template opentelemetry-collector oci://ghcr.io/open-telemetry/opentelemetry-helm-charts/opentelemetry-collector --version "$(COLLECTOR_CHART_VERSION)" --namespace telemetry --values base/otel-collector/values.yaml >/dev/null
+	$(HELM) template victoriametrics oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-single --version 0.33.0 --namespace telemetry --values base/victoria-metrics/values.yaml >/dev/null
+	$(HELM) template fluent-bit oci://ghcr.io/fluent/helm-charts/fluent-bit --version 0.56.0 --namespace telemetry --values base/fluent-bit/values.yaml >/dev/null
+	$(HELM) template opentelemetry-target-allocator oci://ghcr.io/open-telemetry/opentelemetry-helm-charts/opentelemetry-target-allocator --version 0.127.4 --namespace telemetry --values base/components/prometheus-crd-scrape/target-allocator-values.yaml >/dev/null
+	$(HELM) template kube-state-metrics oci://ghcr.io/prometheus-community/charts/kube-state-metrics --version 7.4.0 --namespace telemetry --values base/components/kube-state-metrics/values.yaml >/dev/null
+	$(HELM) template prometheus-node-exporter oci://ghcr.io/prometheus-community/charts/prometheus-node-exporter --version 4.55.0 --namespace telemetry --values base/components/node-exporter/values.yaml >/dev/null
+
+.PHONY: otel-config-check
+otel-config-check: tools-check
+	$(HELM) template opentelemetry-collector oci://ghcr.io/open-telemetry/opentelemetry-helm-charts/opentelemetry-collector --version "$(COLLECTOR_CHART_VERSION)" --namespace telemetry --values base/otel-collector/values.yaml --show-only templates/configmap.yaml | $(YQ) -r '.data.relay' > "$(OTEL_CONFIG_TMP)"
+	$(DOCKER) run --rm -e CLUSTER=validate -e UPSTREAM_OTLP_GRPC_ENDPOINT=validate.example.com:4317 -v "$(OTEL_CONFIG_TMP):/etc/otelcol/config.yaml:ro" "$(COLLECTOR_IMAGE)" validate --config=/etc/otelcol/config.yaml
 
 .PHONY: e2e-kind-static-check
 e2e-kind-static-check:
@@ -88,8 +122,8 @@ e2e-kind-ensure: e2e-kind-host-check
 
 .PHONY: e2e-kind-prometheus-crds
 e2e-kind-prometheus-crds:
-	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" apply --server-side -f "$(PROMETHEUS_OPERATOR_CRD_BASE)/monitoring.coreos.com_servicemonitors.yaml"
-	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" apply --server-side -f "$(PROMETHEUS_OPERATOR_CRD_BASE)/monitoring.coreos.com_podmonitors.yaml"
+	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" apply --server-side -f "$(PROMETHEUS_OPERATOR_CRD_DIR)/monitoring.coreos.com_servicemonitors.yaml"
+	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" apply --server-side -f "$(PROMETHEUS_OPERATOR_CRD_DIR)/monitoring.coreos.com_podmonitors.yaml"
 	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" wait --for=condition=Established crd/servicemonitors.monitoring.coreos.com --timeout=60s
 	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" wait --for=condition=Established crd/podmonitors.monitoring.coreos.com --timeout=60s
 
@@ -130,6 +164,8 @@ e2e-kind-check:
 		"$(CILIUM_SCRIPT)" doctor
 	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" -n telemetry wait helmrelease --all --for=condition=Ready --timeout=10m
 	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" -n telemetry wait pod --all --for=condition=Ready --timeout=5m
+	@addresses=$$($(KUBECTL) --context "$(E2E_KIND_CONTEXT)" -n telemetry get endpoints vm-query -o jsonpath='{.subsets[*].addresses[*].ip}'); \
+		test -n "$$addresses" || { printf 'vm-query endpoint has no ready addresses\n' >&2; exit 1; }
 	$(KUBECTL) --context "$(E2E_KIND_CONTEXT)" get servicemonitor -A -l telemetry.example.com/scrape=true
 
 .PHONY: e2e-kind-artifacts

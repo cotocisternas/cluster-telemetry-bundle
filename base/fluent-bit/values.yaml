@@ -1,5 +1,4 @@
-tolerations:
-  - operator: Exists
+tolerations: []
 extraPorts:
   - port: 4318
     containerPort: 4318
@@ -12,6 +11,7 @@ extraVolumes:
 extraVolumeMounts:
   - name: flb-storage
     mountPath: /var/log/flb-storage
+    readOnly: false
 resources:
   requests:
     memory: 50Mi
@@ -31,6 +31,7 @@ config:
         storage.sync             normal
         storage.checksum         Off
         storage.max_chunks_up    24
+        storage.total_limit_size  1G
   inputs: |
     [INPUT]
         Name             tail
@@ -86,6 +87,6 @@ config:
         Logs_uri             /v1/logs
         Traces_uri           /v1/traces
         Metrics_uri          /v1/metrics
-        Log_response_payload True
+        Log_response_payload False
         Tls                  Off
-        Retry_Limit          5
+        Retry_Limit          False

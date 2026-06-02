@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install aqua
+        uses: aquaproj/aqua-installer@v4.0.3
+        with:
+          aqua_version: v2.59.1
+
+      - name: Install tools
+        run: aqua install
+
+      - name: Render manifests
+        run: make manifests-check
+
+      - name: Check rendered invariants
+        run: make rendered-invariants-check
+
+      - name: Validate schemas
+        run: make schema-check
+
+      - name: Render Helm charts
+        run: make helm-template-check
+
+      - name: Validate OTel Collector config
+        run: make otel-config-check
+
+      - name: Check Kind harness invariants
+        run: make e2e-kind-static-check

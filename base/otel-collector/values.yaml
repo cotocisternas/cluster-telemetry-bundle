@@ -1,19 +1,49 @@
 image:
   repository: otel/opentelemetry-collector-k8s
+  tag: "0.147.0"
+  digest: "sha256:96a88c9f229836480c8ac43a068dea035d6eb4820e4bd858add35b7c337a2168"
 extraEnvs:
   - name: CLUSTER
-    value: "base-cluster"
+    value: "UNSET-OVERRIDE-IN-OVERLAY"
   - name: UPSTREAM_OTLP_GRPC_ENDPOINT
     value: "upstream-otel-collector.example.com:4317"
 mode: deployment
-replicaCount: 3
+replicaCount: 1
 resources:
   requests:
     memory: 256Mi
-    cpu: 100m
+    cpu: 250m
   limits:
     memory: 512Mi
-    cpu: 250m
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: opentelemetry-collector
+networkPolicy:
+  enabled: true
+  allowIngressFrom:
+    - namespaceSelector: {}
 ports:
   otlp:
     enabled: true
@@ -58,8 +88,8 @@ config:
   processors:
     memory_limiter:
       check_interval: 1s
-      limit_percentage: 80
-      spike_limit_percentage: 15
+      limit_mib: 400
+      spike_limit_mib: 80
     resource/cluster:
       attributes:
         - key: cluster
@@ -158,7 +188,6 @@ config:
             - key: cluster
             - key: service.name
             - key: k8s.namespace.name
-            - key: http.route
             - key: http.method
   service:
     telemetry:
@@ -185,5 +214,5 @@ config:
         exporters: [otlp/upstream, count]
       metrics/from_logs:
         receivers: [count]
-        processors: [resource/cluster, batch]
+        processors: [memory_limiter, resource/cluster, batch]
         exporters: [otlphttp/victoriametrics, otlp/upstream]

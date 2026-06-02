@@ -8,6 +8,7 @@ CILIUM_MONITORING_VALUES=${CILIUM_MONITORING_VALUES:-base/components/cilium-hubb
 CILIUM_SCRIPT=${CILIUM_SCRIPT:-scripts/e2e-kind-cilium.sh}
 MAKEFILE=${MAKEFILE:-Makefile}
 AQUA_CONFIG=${AQUA_CONFIG:-aqua.yaml}
+PROMETHEUS_OPERATOR_CRD_DIR=${PROMETHEUS_OPERATOR_CRD_DIR:-test/e2e/prometheus-operator-crds}
 
 require_file() {
 	path=$1
@@ -49,6 +50,8 @@ require_file "$CILIUM_VALUES" "Kind Cilium Helm values"
 require_file "$CILIUM_MONITORING_VALUES" "Cilium/Hubble monitoring values"
 require_file "$CILIUM_SCRIPT" "Cilium helper script"
 require_file "scripts/collect-kind-artifacts.sh" "Kind artifact collector"
+require_file "$PROMETHEUS_OPERATOR_CRD_DIR/monitoring.coreos.com_servicemonitors.yaml" "vendored ServiceMonitor CRD"
+require_file "$PROMETHEUS_OPERATOR_CRD_DIR/monitoring.coreos.com_podmonitors.yaml" "vendored PodMonitor CRD"
 
 require 'disableDefaultCNI:[[:space:]]*true' "$KIND_CONFIG" "disabled Kind default CNI"
 require 'kubeProxyMode:[[:space:]]*"?none"?' "$KIND_CONFIG" "disabled kube-proxy"
@@ -61,6 +64,8 @@ require 'kubernetes-sigs/kind@v0\.31\.0' "$AQUA_CONFIG" "pinned kind"
 require 'kubernetes/kubernetes/kubectl@v1\.36\.1' "$AQUA_CONFIG" "pinned kubectl"
 require 'helm/helm@v3\.21\.0' "$AQUA_CONFIG" "pinned Helm 3"
 require 'fluxcd/flux2@v2\.8\.8' "$AQUA_CONFIG" "pinned Flux"
+require 'yannh/kubeconform@v0\.7\.0' "$AQUA_CONFIG" "pinned kubeconform"
+require 'mikefarah/yq@v4\.49\.2' "$AQUA_CONFIG" "pinned yq"
 
 require 'kubeProxyReplacement:[[:space:]]*true' "$CILIUM_VALUES" "Cilium kube-proxy replacement"
 require 'mode:[[:space:]]*kubernetes' "$CILIUM_VALUES" "Cilium Kubernetes IPAM"
@@ -99,9 +104,14 @@ require '^CILIUM_VERSION[[:space:]]*\?=' "$MAKEFILE" "Cilium version variable"
 require '^PROMETHEUS_OPERATOR_VERSION[[:space:]]*\?=' "$MAKEFILE" "Prometheus Operator version variable"
 require '^tools-install:' "$MAKEFILE" "tool install target"
 require '^tools-check:' "$MAKEFILE" "tool check target"
+require '^schema-check:' "$MAKEFILE" "schema validation target"
+require '^rendered-invariants-check:' "$MAKEFILE" "rendered invariant target"
+require '^helm-template-check:' "$MAKEFILE" "Helm template target"
+require '^otel-config-check:' "$MAKEFILE" "OTel config validation target"
 require '^e2e-kind-host-check:' "$MAKEFILE" "e2e host check target"
 require '^e2e-kind-ensure:' "$MAKEFILE" "Kind ensure target"
 require '^e2e-kind-cilium-install:' "$MAKEFILE" "Cilium install target"
 require '^e2e-kind-flux-install:' "$MAKEFILE" "Flux install target"
 require '^e2e-kind-check:' "$MAKEFILE" "Kind check target"
+require 'get endpoints vm-query' "$MAKEFILE" "vm-query endpoint assertion"
 require '^e2e-kind-artifacts:' "$MAKEFILE" "artifact collection target"

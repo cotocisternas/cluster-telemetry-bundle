@@ -29,7 +29,7 @@ ServiceMonitor -> Target Allocator -> OTel Collector -> VictoriaMetrics
 - Docker with cgroup v2 and private cgroup namespaces
 - Linux kernel 5.14 or newer
 - Network access for `aqua install`
-- Network access to the Cilium OCI chart and Prometheus Operator CRDs
+- Network access to the Cilium OCI chart
 
 The repo pins its e2e CLIs in `aqua.yaml`:
 
@@ -55,7 +55,7 @@ make e2e-kind-delete
 
 ```text
 1. Create or reuse the Kind cluster.
-2. Install ServiceMonitor and PodMonitor CRDs.
+2. Install vendored ServiceMonitor and PodMonitor CRDs.
 3. Install Cilium 1.19.4 with kube-proxy replacement and Hubble metrics.
 4. Install Flux controllers.
 5. Apply test/e2e/overlays/kind-cilium.
@@ -77,6 +77,7 @@ scripts/check-e2e-kind.sh
 scripts/collect-kind-artifacts.sh
 test/e2e/kind/cluster-cilium.yaml
 test/e2e/cilium/values.yaml
+test/e2e/prometheus-operator-crds/
 test/e2e/overlays/kind-cilium/
 base/components/cilium-hubble-monitoring/values.yaml
 ```

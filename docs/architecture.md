@@ -106,6 +106,20 @@ Cilium and Hubble metrics:
 | Logs | Fluent Bit OTLP/HTTP | None | OTLP/gRPC | Derived metrics only |
 | Traces | OTLP/gRPC, OTLP/HTTP | None | OTLP/gRPC | None |
 
+The derived `http_5xx_errors_total` metric is intentionally low-cardinality in
+the base path. It keeps cluster, service, namespace, and method labels, but does
+not keep `http.route` by default. A typical local consumer should aggregate by
+cluster and service, for example:
+
+```promql
+sum by (cluster, service_name) (rate(http_5xx_errors_total[5m]))
+```
+
+The base collector intentionally keeps `replicaCount: 1` while `tail_sampling`
+is enabled. Tail sampling needs every span for a trace to reach the same
+decision point; scaling this path requires a stateless ingest tier with
+trace-ID-aware load balancing into a separate tail-sampling tier.
+
 ## Pod Security Boundary
 
 The bundle's `telemetry` namespace uses Pod Security `privileged` enforcement.
@@ -119,7 +133,7 @@ telemetry namespace
         |
         +-- Fluent Bit host log collection
         +-- node-exporter host metrics profile
-        +-- OTel Collector and VictoriaMetrics
+        +-- OTel Collector and VictoriaMetrics with hardened pod/container contexts
 ```
 
 If a platform needs stricter policy isolation, split host collectors into their
@@ -143,6 +157,15 @@ The local cache is deliberately small and disposable.
 The cache is not the source of truth for historical observability. It exists so
 cluster-local automation can keep working when upstream visibility is delayed or
 temporarily unavailable.
+
+## Log Forwarding Buffer
+
+Fluent Bit uses filesystem buffering for tailed container logs. The base limits
+that buffer to 1 GiB per node and retries collector delivery without a fixed
+retry count. When the filesystem buffer reaches the configured chunk limit,
+Fluent Bit pauses the input rather than growing without bound; this favors node
+disk protection over unlimited log retention during prolonged collector
+outages.
 
 ## Prometheus CRD Scraping
 
@@ -281,8 +304,15 @@ long outage:
   receive -> process -> queue full or retry expired -> drop
                                               |
                                               v
-                                  collector exporter failure metrics
+	                                  collector exporter failure metrics
 ```
+
+Scrape the collector's disabled-by-default `ServiceMonitor` or `PodMonitor`
+hooks from an external Prometheus stack when these failure modes matter. Start
+with `otelcol_exporter_send_failed_*`, `otelcol_exporter_queue_size`,
+`otelcol_processor_dropped_*`, `otelcol_processor_refused_*`, and collector
+memory limiter metrics. Sending those self-metrics through the same gateway is
+less robust during the upstream outage they are meant to diagnose.
 
 ## Identity Model
 

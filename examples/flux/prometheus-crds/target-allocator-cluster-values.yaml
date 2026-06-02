@@ -16,7 +16,7 @@ data:
         prometheus_cr:
           service_monitor_selector:
             matchLabels:
-              observability.example.com/scrape: "enabled"
+              telemetry.example.com/scrape: "true"
           pod_monitor_selector:
             matchLabels:
-              observability.example.com/scrape: "enabled"
+              telemetry.example.com/scrape: "true"
